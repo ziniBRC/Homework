@@ -1,0 +1,142 @@
+import numpy as np
+from numpy import *
+import matplotlib.pyplot as plt
+
+feature_num = 5
+w = np.zeros((feature_num + 1,1))
+learning_rate = 1.6
+max_epoch = 270
+
+
+def loadDataSet(path):
+    # load the dataset
+    data = loadtxt(path, delimiter=",")
+
+    # get x and y
+    Y = np.c_[data[:, 2]]
+    X = data[:, 0:2]
+
+    return data,X,Y
+
+#求解特征数组
+def getFeature(X):
+    featureNum = 5
+    x1=X[:,0]
+    x2=X[:,1]
+
+    x1.shape = (x1.size, 1)
+    x2.shape = (x2.size, 1)
+
+    featureSet = np.ones((x1.shape[0],1))
+    featureSet = append(featureSet, x1, axis=1)
+    featureSet = append(featureSet, x2,axis=1)
+    featureSet = append(featureSet, x1*x2,axis=1)
+    featureSet = append(featureSet, x1**2, axis=1)
+    featureSet = append(featureSet, x2**2, axis=1)
+
+    #print(featureSet)
+    return featureSet
+
+
+
+# train_x 是 m*feature_num 的矩阵, train_y是 m*1 的矩阵
+def inputData(path):
+
+    f_open = open(path)
+
+    input_array = np.array([feature_num + 1])
+
+    first_flag = 1
+
+    for row in f_open:
+        row = row.replace("\t"," ").replace("\n","")
+        row = row.split(" ")
+
+        if row[feature_num] == '-1':
+            row[feature_num] = '0'
+
+        if first_flag == 1:
+            first_flag = 0
+            input_array = row
+        else :
+            input_array = np.vstack((input_array,row))
+
+
+    my_train_x = np.array([[float(row[i]) for i in range(feature_num)] for row in input_array])
+    my_train_y = np.array([[float(row[4])]for row in input_array])
+
+    my_train_x = np.hstack(((np.ones((len(my_train_y),1))),my_train_x))
+
+
+    return my_train_x,my_train_y
+
+# x is constant or array
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def loss(train_x,train_y,w):
+    m = train_y.shape[0]
+
+    loss_function = -1/m *np.sum(np.multiply(train_y,np.log2(sigmoid(np.matmul(train_x,w))))+np.multiply(1-train_y,np.log2(1-sigmoid(np.matmul(train_x,w)))))
+
+    return loss_function
+
+def gradientDescendWithoutReg(train_x,train_y,w):
+    m = train_x.shape[0]
+
+    w = (w.T - learning_rate * 1/m * np.sum(np.multiply(sigmoid(np.matmul(train_x,w)) - train_y,train_x),0)).T
+
+    return w
+
+def getAccuracy(train_x,train_y,w):
+
+
+    pred = sigmoid(np.matmul(train_x,w))
+
+    # print(pred)
+
+    pred = np.int64(pred>0.5)
+
+    accuracy = np.sum(pred == train_y)/train_x.shape[0]
+
+    return accuracy
+
+def plotData(input_x,train_y):
+
+    pos = train_y[:,0] == 1
+    neg = train_y[:,0] == 0
+
+    plt.scatter(input_x[pos][:,0], input_x[pos][:,1],color="r")
+    plt.scatter(input_x[neg][:,0], input_x[neg][:,1], color="b")
+
+
+def plotBound(input_x,train_y,w):
+    x1_min, x1_max = input_x[:, 0].min(), input_x[:, 0].max(),
+    x2_min, x2_max = input_x[:, 1].min(), input_x[:, 1].max(),
+
+    x1, x2 = np.meshgrid(np.linspace(x1_min, x1_max), np.linspace(x2_min, x2_max))
+
+    h = sigmoid(np.matmul(getFeature(np.hstack((x1.ravel().reshape(x1.size,1), x2.ravel().reshape(x2.size,1)))),w))
+    h = h.reshape(x1.shape)
+
+    plt.contour(x1, x2, h, [0.5], linewidths=1, colors='k')
+
+
+
+if __name__ == '__main__':
+    data,input_x,train_y = loadDataSet("data\\data2.txt")
+
+    train_x = getFeature(input_x)
+
+    for epoch in range(500):
+        w = gradientDescendWithoutReg(train_x,train_y,w)
+        print("loss : " + str(loss(train_x,train_y,w)))
+
+    print("after " + str(max_epoch) + " epochs,accuracy:" + str(getAccuracy(train_x,train_y,w)))
+
+    plt.figure()
+
+    plotData(input_x, train_y)
+    plotBound(input_x, train_y,w)
+    plt.show()
+    pass
